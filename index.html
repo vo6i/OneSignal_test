@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Jokes Push Service</title>
+    <!-- Подключаем официальный скрипт OneSignal -->
+    <script src="https://onesignal.com" defer></script>
+   
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px 20px; background: #f4f6f8; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; color: #e60023; }
+        button { background: #e60023; color: white; border: none; padding: 14px 28px; font-size: 1rem; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: 0.2s; width: 100%; }
+        button:hover { background: #b6001a; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .joke-preview { background: #f9f9f9; padding: 15px; border-radius: 8px; font-style: italic; margin-top: 15px; border-left: 4px solid #e60023; text-align: left; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>IT-Уведомления а-ля Pinterest</h1>
+    <p>Подпишитесь, чтобы получать системные пуши с шутками в Chrome или Firefox.</p>
+   
+    <!-- Сюда OneSignal сам может встроить красивый колокольчик, но мы сделаем свою кнопку -->
+    <button id="subscribe-btn">Загрузка сервиса...</button>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+    <h3>Панель управления (Отправить пуш всем)</h3>
+    <p>Кнопка ниже спарсит свежую шутку и мгновенно отправит её в пуш-уведомление всем, кто подписался.</p>
+    <button id="send-push-btn" disabled>Парсить и разослать шутку</button>
+    <div id="joke-view" class="joke-preview" style="display: none;"></div>
+</div>
+
+<script>
+// Инициализируем OneSignal при загрузке страницы
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+window.OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+        appId: "ВАШ_APP_ID_ИЗ_ONESIGNAL", // <- ВСТАВЬТЕ СЮДА СВОЙ ID
+        safari_web_id: "web.onesignal.auto.XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", // Опционально для Safari
+        notifyButton: { enable: false }, // Отключаем их стандартный колокольчик
+    });
+
+    const subBtn = document.getElementById('subscribe-btn');
+    const sendBtn = document.getElementById('send-push-btn');
+
+    // Проверяем, подписан ли уже пользователь
+    if (OneSignal.User.PushSubscription.optedIn) {
+        subBtn.textContent = "Вы успешно подписаны! 🎉";
+        subBtn.disabled = true;
+        sendBtn.disabled = false; // Разрешаем отправлять пуши
+    } else {
+        subBtn.textContent = "Разрешить уведомления";
+        subBtn.addEventListener('click', async () => {
+            // Запрашиваем у Chrome разрешение (всплывет окно браузера)
+            await OneSignal.Slidedown.promptPush();
+        });
+    }
+
+    // Следим за изменением подписки в реальном времени
+    OneSignal.User.PushSubscription.addEventListener("change", (event) => {
+        if (event.current.optedIn) {
+            subBtn.textContent = "Вы успешно подписаны! 🎉";
+            subBtn.disabled = true;
+            sendBtn.disabled = false;
+        }
+    });
+});
+
+// Функция парсинга шутки и отправки её через OneSignal REST API
+document.getElementById('send-push-btn').addEventListener('click', async () => {
+    const sendBtn = document.getElementById('send-push-btn');
+    const jokeView = document.getElementById('joke-view');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Парсинг шутки...';
+
+    try {
+        // 1. Парсим шутку из API, как в прошлый раз
+        const response = await fetch('https://jokeapi.dev');
+        const data = await response.json();
+        const jokeText = data.type === 'single' ? data.joke : `${data.setup} \n— ${data.delivery}`;
+       
+        jokeView.style.display = 'block';
+        jokeView.textContent = `Отправлено: "${jokeText}"`;
+
+        // 2. Отправляем эту шутку через OneSignal всем подписчикам вашего сайта
+        // Для безопасности в реальных проектах это делают с сервера, но OneSignal позволяет делать базовые пуши прямо из JS:
+        await fetch('https://onesignal.com', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ВАШ_REST_API_KEY_ИЗ_НАСТРОЕК_ONESIGNAL' // Находится в Settings -> API Keys
+            },
+            body: JSON.stringify({
+                app_id: "ВАШ_APP_ID_ИЗ_ONESIGNAL",
+                included_segments: ["All Users"], // Отправить абсолютно всем подписчикам
+                headings: {"en": "IT Шутка дня! 💻"},
+                contents: {"en": jokeText},
+                url: window.location.href // При клике на пуш откроется ваш GitHub Pages
+            })
+        });
+
+        alert('Шутка успешно улетела в фоновые уведомления Chrome!');
+
+    } catch (error) {
+        console.error(error);
+        alert('Произошла ошибка при отправке. Проверьте ключи API в коде.');
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Парсить и разослать шутку';
+    }
+});
+</script>
+
+</body>
+</html>
