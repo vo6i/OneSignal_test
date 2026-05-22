@@ -38,10 +38,12 @@
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 window.OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
-        appId: "ВАШ_APP_ID_ИЗ_ONESIGNAL", // <- ВСТАВЬТЕ СЮДА СВОЙ ID (публичный, оставлять в коде можно)
-        allowLocalhostAsSecureOrigin: true // Позволяет тестировать на localhost без HTTPS
+        appId: "d9140035-fa41-4933-bec4-05b2e0b0c1db",
+      safari_web_id: "web.onesignal.auto.2e21fe47-8329-4413-bae9-ecef4da3342d",
+      notifyButton: {
+        enable: false,
+      },
     });
-
     const subBtn = document.getElementById('subscribe-btn');
     const sendBtn = document.getElementById('send-push-btn');
 
