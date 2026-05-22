@@ -63,7 +63,9 @@ window.OneSignalDeferred.push(async function(OneSignal) {
     updateUI();
 
     subBtn.addEventListener('click', async () => {
-        await OneSignal.Slidedown.promptPush();
+        // Запрашиваем разрешение напрямую через системное окно браузера
+      await OneSignal.Notifications.requestPermission();
+
     });
 
     // Следим за изменением подписки
