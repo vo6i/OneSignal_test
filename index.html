@@ -40,8 +40,11 @@ window.OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
         appId: "d9140035-fa41-4933-bec4-05b2e0b0c1db",
       safari_web_id: "web.onesignal.auto.2e21fe47-8329-4413-bae9-ecef4da3342d",
-      notifyButton: {
-        enable: false,
+      notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+        // ДОБАВЬТЕ ЭТИ ДВЕ СТРОКИ СНИЗУ:
+        serviceWorkerPath: "OneSignal_test/",
+        serviceWorkerParam: { scope: "/OneSignal_test/" , 
       },
     });
     const subBtn = document.getElementById('subscribe-btn');
